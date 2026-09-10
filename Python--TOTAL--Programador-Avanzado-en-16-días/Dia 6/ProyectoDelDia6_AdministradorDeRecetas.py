@@ -1,76 +1,157 @@
 from pathlib import Path
-import os
-
-#base = Path(r"C:\Users\jajap\OneDrive\Desktop\Programacion\CursoUdemy\pythonProject\Dia 6\Recetas")
 
 
-leer_archivo= lambda archivo: print(open(archivo).read())
+BASE = Path(__file__).resolve().parent
 
 
-Ver_categorias = lambda: os.listdir(Path(__file__).resolve().parent / "Recetas")
+def leer_archivo(archivo):
+    archivo = Path(archivo)
+    if not archivo.is_file():
+        print("La receta no existe.")
+        return
+    print(archivo.read_text(encoding="utf-8"))
 
-Elegir_carpeta = lambda carpeta: Path(Path(__file__).resolve().parent, carpeta)
+
+def Ver_categorias(base=BASE):
+    recetas = Path(base) / "Recetas"
+    return sorted(categoria.name for categoria in recetas.iterdir() if categoria.is_dir())
+
+
+def Elegir_carpeta(carpeta, base=BASE):
+    return Path(base) / "Recetas" / carpeta
+
 
 def Ver_recetas(ruta):
-    # Buscar archivos .txt recursivamente en todos los subdirectorios dentro de la carpeta
-    archivos_txt = list(ruta.rglob("*.txt"))
-    num = 0
-    archivos_txt = [archivo.name for archivo in ruta.rglob("*.txt")]
-    for archivo in archivos_txt: # Imprimir los archivos encontrados
-        num += 1  # Cuenta las recetas
-        print(archivo)  # Muestra las recetas
-    return num
+    recetas = sorted(Path(ruta).glob("*.txt"))
+    for receta in recetas:
+        print(receta.stem)
+    return len(recetas)
 
 
-def MenuPrincipal():
-    base= Path(__file__).resolve().parent
-    print('''############ MENU PRINCIPAL ############ 
-    
-[1] leer receta
-[2] crear receta
-[3] crear categoria
-[4] eliminar receta
-[5] eliminar receta
-[6] finalizar programa''')
-    match input("Elige una opción: "):
-        case "1":
-            opcion1(base)
-        case "2":
-            print("Opción 2 seleccionada")
-        case "3":
-            print("Opción 3 seleccionada")
-        case "4":
-            print("Opción 4 seleccionada")
-        case "5":
-            print("Opción 5 seleccionada")
-        case "6":
+def Mostrar_recetas(categoria, base=BASE):
+    ruta = Elegir_carpeta(categoria, base)
+    if not ruta.is_dir():
+        print("La categoría no existe.")
+        return []
+    recetas = sorted(ruta.glob("*.txt"))
+    if not recetas:
+        print("La categoría no contiene recetas.")
+    else:
+        Ver_recetas(ruta)
+    return recetas
+
+
+def Elegir_receta(categoria, base=BASE):
+    recetas = Mostrar_recetas(categoria, base)
+    if not recetas:
+        return None
+    nombre = input("Elige una receta: ").strip()
+    receta = Elegir_carpeta(categoria, base) / nombre
+    if receta.suffix.lower() != ".txt":
+        receta = receta.with_suffix(".txt")
+    if receta not in recetas:
+        print("La receta no existe.")
+        return None
+    return receta
+
+
+def Leer_receta(base=BASE):
+    categorias = Ver_categorias(base)
+    print("Categorías:", ", ".join(categorias))
+    categoria = input("Elige una categoría: ").strip()
+    receta = Elegir_receta(categoria, base)
+    if receta:
+        leer_archivo(receta)
+
+
+def Crear_receta(base=BASE):
+    categorias = Ver_categorias(base)
+    print("Categorías:", ", ".join(categorias))
+    categoria = input("Categoría: ").strip()
+    ruta = Elegir_carpeta(categoria, base)
+    if not ruta.is_dir():
+        print("La categoría no existe.")
+        return
+    nombre = input("Nombre de la receta: ").strip()
+    if not nombre:
+        print("El nombre no puede estar vacío.")
+        return
+    ruta_receta = ruta / nombre
+    if ruta_receta.suffix.lower() != ".txt":
+        ruta_receta = ruta_receta.with_suffix(".txt")
+    if ruta_receta.exists():
+        print("La receta ya existe.")
+        return
+    contenido = input("Escribe la receta: ")
+    ruta_receta.write_text(contenido, encoding="utf-8")
+    print("Receta creada.")
+
+
+def Crear_categoria(base=BASE):
+    nombre = input("Nombre de la categoría: ").strip()
+    if not nombre:
+        print("El nombre no puede estar vacío.")
+        return
+    categoria = Path(base) / "Recetas" / nombre
+    if categoria.exists():
+        print("La categoría ya existe.")
+        return
+    categoria.mkdir(parents=True)
+    print("Categoría creada.")
+
+
+def Eliminar_receta(base=BASE):
+    categorias = Ver_categorias(base)
+    print("Categorías:", ", ".join(categorias))
+    categoria = input("Categoría: ").strip()
+    receta = Elegir_receta(categoria, base)
+    if receta and input("¿Eliminar esta receta? (s/n): ").strip().lower() == "s":
+        receta.unlink()
+        print("Receta eliminada.")
+
+
+def Eliminar_categoria(base=BASE):
+    categorias = Ver_categorias(base)
+    print("Categorías:", ", ".join(categorias))
+    nombre = input("Categoría: ").strip()
+    categoria = Elegir_carpeta(nombre, base)
+    if not categoria.is_dir():
+        print("La categoría no existe.")
+        return
+    if any(categoria.iterdir()):
+        print("La categoría no está vacía.")
+        return
+    categoria.rmdir()
+    print("Categoría eliminada.")
+
+
+def MenuPrincipal(base=BASE):
+    while True:
+        print("""
+############ MENU PRINCIPAL ############
+[1] Leer receta
+[2] Crear receta
+[3] Crear categoría
+[4] Eliminar receta
+[5] Eliminar categoría
+[6] Finalizar programa""")
+        opcion = input("Elige una opción: ").strip()
+        if opcion == "1":
+            Leer_receta(base)
+        elif opcion == "2":
+            Crear_receta(base)
+        elif opcion == "3":
+            Crear_categoria(base)
+        elif opcion == "4":
+            Eliminar_receta(base)
+        elif opcion == "5":
+            Eliminar_categoria(base)
+        elif opcion == "6":
             print("Programa finalizado")
             return 0
-        case _:
+        else:
             print("Opción no válida, por favor elige una opción del 1 al 6")
 
-#TODO    Mostrar Recetas
-#TODO    Elegir receta
-#TODO    Leer receta
-    
 
-
-def opcion1(base):
-    print("\nPor favor, elige una categoría entre las siguientes opciones:\n")
-    print(Ver_categorias())
-    categoria=input().strip()
-
-    ruta= Path(base,"Recetas", categoria)
-
-    archivos_txt = [archivo.name for archivo in ruta.rglob("*.txt")]
-    print(f"\nLas recetas disponibles en esta categoría son:\n {archivos_txt}\n\n")
-    
-    Ver_recetas(Path(base,"Recetas", categoria))
-    receta=input("\n\nElije una receta: ")
-    ruta_receta= Path(base,"Recetas", categoria, receta+".txt")
-    leer_archivo(ruta_receta)
-
-
-MenuPrincipal()
-#base= os.getcwd() 
-#opcion1(Path(__file__).resolve().parent)
+if __name__ == "__main__":
+    MenuPrincipal()
